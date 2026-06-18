@@ -17,7 +17,7 @@ export function VendorsMarketplacePage() {
   return (
     <div>
       <PageHeader
-        title="Vendors & Marketplace"
+        title="Marketplace"
         description="Manage vendor subscription state and admin-curated sponsored placements in the marketplace directory."
       />
       <div className="mb-5">

@@ -41,7 +41,9 @@ export function PostPreview({
 }) {
   const meta = TYPE_META[content.type];
   const TypeIcon = meta.icon;
-  const anonymous = !content.authorId;
+  // The card mirrors what peers see in the feed: an anonymous post stays anonymous here (🎭 + the
+  // "Anonymous …" byline) even though it carries a real authorId the admin can see in the sidebar.
+  const anonymous = !!content.anonymous || !content.authorId;
 
   return (
     <div className="rounded-xl border border-border bg-card p-5">
@@ -66,6 +68,7 @@ export function PostPreview({
                 <span>{content.roomName}</span>
               </>
             )}
+            {anonymous && <Badge variant="muted">Posted anonymously</Badge>}
             {content.confessional && (
               <Badge variant="warning" className="ml-0.5">Confessional</Badge>
             )}

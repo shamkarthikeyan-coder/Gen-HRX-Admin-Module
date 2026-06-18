@@ -23,7 +23,7 @@ export function Sidebar() {
   const items: NavItem[] = [
     { to: "/moderation", label: "Content Moderation", icon: Flag, badge: openFlags },
     { to: "/users", label: "Users", icon: Users },
-    { to: "/vendors", label: "Vendors & Marketplace", icon: Store, badge: inactiveVendors },
+    { to: "/vendors", label: "Marketplace", icon: Store, badge: inactiveVendors },
     { to: "/audit", label: "Audit & Events", icon: ScrollText },
   ];
 

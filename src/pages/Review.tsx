@@ -13,6 +13,7 @@ import { FlagSourceBadge, AccountStatusBadge, RoomStatusBadge } from "@/componen
 import { useStore } from "@/store/AppStore";
 import { useSidebar } from "@/components/layout/sidebar-context";
 import { runAction } from "@/lib/runAction";
+import { deriveProfile } from "@/lib/profile";
 import { formatDate, formatDateTime, timeAgo } from "@/lib/format";
 import { reportVolume } from "@/lib/moderation";
 import { cn } from "@/lib/cn";
@@ -377,19 +378,31 @@ export function FlagReviewPage() {
             <Row label="Flagged">{timeAgo(flag.createdAt)}</Row>
           </Panel>
 
-          {/* Author */}
+          {/* Author. For an anonymous post the feed only shows "Anonymous …", but the post is still tied
+              to a real account — so the admin sees the actual member (and their real role) here, with a
+              note that this identity is hidden from peers. */}
           <Panel title="Author">
             {author ? (
               <>
+                {item.anonymous && (
+                  <Badge variant="muted" className="-mt-1 gap-1">
+                    <EyeOff className="size-3.5" /> Posted anonymously
+                  </Badge>
+                )}
                 <div className="flex items-center gap-3">
                   <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-purple-500 to-orange-500 text-sm font-semibold text-white">
                     {initials(author.name)}
                   </div>
                   <div className="min-w-0">
                     <p className="truncate font-medium">{author.name}</p>
-                    {item.authorRole && (
-                      <p className="truncate text-xs text-muted-foreground">{item.authorRole}</p>
-                    )}
+                    {(() => {
+                      // Anonymous posts carry a generic "HR Professional" byline; reveal the member's
+                      // real role here instead. Other posts keep their actual byline role.
+                      const role = item.anonymous ? deriveProfile(author).headline : item.authorRole;
+                      return role ? (
+                        <p className="truncate text-xs text-muted-foreground">{role}</p>
+                      ) : null;
+                    })()}
                   </div>
                 </div>
                 {author.badges && author.badges.length > 0 && (
@@ -433,7 +446,7 @@ export function FlagReviewPage() {
               </>
             ) : (
               <p className="text-sm text-muted-foreground">
-                Anonymous post — no account to inspect or action.
+                No linked account for this post — nothing to inspect or action.
               </p>
             )}
           </Panel>

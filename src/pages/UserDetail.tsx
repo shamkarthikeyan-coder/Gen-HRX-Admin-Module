@@ -28,6 +28,7 @@ import { useStore } from "@/store/AppStore";
 import { useSidebar } from "@/components/layout/sidebar-context";
 import { runAction } from "@/lib/runAction";
 import { deriveProfile } from "@/lib/profile";
+import { ROLE_LABEL } from "@/lib/roles";
 import { formatDate, formatDateTime, timeAgo } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { SUSPENSION_PRESETS, type Content, type Flag, type ModerationAction } from "@/data/types";
@@ -137,7 +138,7 @@ export function UserDetailPage() {
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-2xl font-semibold tracking-tight">{displayName}</h1>
               <AccountStatusBadge status={user.accountStatus} />
-              <Badge variant="outline" className="capitalize">{user.role}</Badge>
+              <Badge variant="outline">{ROLE_LABEL[user.role]}</Badge>
               <Badge
                 variant={user.verification === "verified" ? "success" : "muted"}
                 className="capitalize"

@@ -12,7 +12,8 @@ import { ColumnFilter } from "@/components/ui/column-filter";
 import { AccountStatusBadge } from "@/components/shared/badges";
 import { useStore } from "@/store/AppStore";
 import { formatDate } from "@/lib/format";
-import type { User } from "@/data/types";
+import { ROLE_LABEL } from "@/lib/roles";
+import type { User, UserRole } from "@/data/types";
 
 const PAGE_SIZE = 10;
 
@@ -29,6 +30,14 @@ const STATUS_FILTERS = [
   { value: "suspended", label: "Suspended" },
   { value: "banned", label: "Banned" },
 ];
+// Category filter — only offered in the "All" tab (the category tabs already scope to one category).
+const CATEGORY_FILTERS = [
+  { value: "all", label: "All" },
+  { value: "hr-practitioner", label: "HR Practitioner" },
+  { value: "hr-leader", label: "HR Leader" },
+  { value: "friends-of-hr", label: "Friends of HR" },
+  { value: "vendor", label: "Vendor" },
+];
 // Name + Joined are sorts, not value filters. They share one sort state, so picking a
 // direction on one column clears the other — only one column sorts at a time.
 const NAME_SORT = [
@@ -43,7 +52,15 @@ const JOINED_SORT = [
 ];
 
 type SortDir = "asc" | "desc";
-type Tab = "members" | "vendors";
+// "all" lists every category together; the four role values each list a single category (the tab
+// value IS the role it lists).
+type Tab = "all" | Exclude<UserRole, "admin">;
+const CATEGORY_TABS: Exclude<UserRole, "admin">[] = [
+  "hr-practitioner",
+  "hr-leader",
+  "friends-of-hr",
+  "vendor",
+];
 
 // Members are listed by their own name; vendor accounts by their company name.
 function displayName(u: User) {
@@ -53,17 +70,19 @@ function displayName(u: User) {
 export function UsersPage() {
   const { users } = useStore();
   const navigate = useNavigate();
-  const [tab, setTab] = useState<Tab>("members");
+  const [tab, setTab] = useState<Tab>("all");
   const [q, setQ] = useState("");
   const [verificationFilter, setVerificationFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
   const [sortCol, setSortCol] = useState<"name" | "joined" | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [page, setPage] = useState(0);
 
-  // Admins are never listed here — User Management covers members and vendors only.
-  const memberCount = users.filter((u) => u.role === "member").length;
-  const vendorCount = users.filter((u) => u.role === "vendor").length;
+  // Admins are never listed here — User Management covers the member-facing categories only.
+  const listable = useMemo(() => users.filter((u) => u.role !== "admin"), [users]);
+  const countFor = (r: Tab) =>
+    r === "all" ? listable.length : listable.filter((u) => u.role === r).length;
 
   // Any filter/sort change starts the result set over from the first page.
   function resetPage() {
@@ -80,7 +99,11 @@ export function UsersPage() {
   }
 
   const filtersActive =
-    q.trim() !== "" || verificationFilter !== "all" || statusFilter !== "all" || sortCol !== null;
+    q.trim() !== "" ||
+    verificationFilter !== "all" ||
+    statusFilter !== "all" ||
+    categoryFilter !== "all" ||
+    sortCol !== null;
 
   // Escape hatch back to the full list (within the current tab) — also reachable from the empty
   // state, so a filter that matches nothing is never a dead end.
@@ -88,17 +111,18 @@ export function UsersPage() {
     setQ("");
     setVerificationFilter("all");
     setStatusFilter("all");
+    setCategoryFilter("all");
     setSortCol(null);
     setSortDir("asc");
     setPage(0);
   }
 
-  const role = tab === "members" ? "member" : "vendor";
-
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
-    const rows = users.filter((u) => {
-      if (u.role !== role) return false;
+    const rows = listable.filter((u) => {
+      if (tab !== "all" && u.role !== tab) return false;
+      // Category filter applies only in the "All" tab; the category tabs already scope to one role.
+      if (tab === "all" && categoryFilter !== "all" && u.role !== categoryFilter) return false;
       const matchesText =
         !needle ||
         displayName(u).toLowerCase().includes(needle) ||
@@ -116,15 +140,19 @@ export function UsersPage() {
       rows.sort((a, b) => (new Date(a.joinDate).getTime() - new Date(b.joinDate).getTime()) * dir);
     }
     return rows;
-  }, [users, role, q, verificationFilter, statusFilter, sortCol, sortDir]);
+  }, [listable, tab, q, verificationFilter, statusFilter, categoryFilter, sortCol, sortDir]);
 
   const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, pages - 1);
   const pageRows = filtered.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE);
 
-  const isVendors = tab === "vendors";
+  const isVendors = tab === "vendor";
   const nameLabel = isVendors ? "Company" : "Name";
-  const noun = isVendors ? "vendors" : "members";
+  const noun = isVendors ? "vendors" : "accounts";
+  // The Category column only carries information in the combined "All" view — within a single-category
+  // tab every row is the same category, so it's just noise there.
+  const showCategory = tab === "all";
+  const colCount = showCategory ? 6 : 5;
 
   function inspect(id: string) {
     navigate(`/users/${id}`);
@@ -134,16 +162,16 @@ export function UsersPage() {
     <div>
       <PageHeader
         title="User Accounts"
-        description="Members and vendors are managed separately. Open an account to see its full profile and act: warn → suspend → ban, with lift as the reverse gear."
+        description="Accounts are grouped by category — HR Practitioners, HR Leaders, Friends of HR, and Vendors. Open an account to see its full profile and act: warn → suspend → ban, with lift as the reverse gear."
       />
 
       <Tabs
         className="mb-4"
         value={tab}
-        onChange={(v) => { setTab(v as Tab); resetPage(); }}
+        onChange={(v) => { setTab(v as Tab); setCategoryFilter("all"); resetPage(); }}
         items={[
-          { value: "members", label: "Members", count: memberCount },
-          { value: "vendors", label: "Vendors", count: vendorCount },
+          { value: "all", label: "All", count: countFor("all") },
+          ...CATEGORY_TABS.map((t) => ({ value: t, label: ROLE_LABEL[t], count: countFor(t) })),
         ]}
       />
 
@@ -183,6 +211,16 @@ export function UsersPage() {
                   options={NAME_SORT}
                 />
               </TH>
+              {showCategory && (
+                <TH>
+                  <ColumnFilter
+                    label="Category"
+                    value={categoryFilter}
+                    onChange={(v) => { setCategoryFilter(v); resetPage(); }}
+                    options={CATEGORY_FILTERS}
+                  />
+                </TH>
+              )}
               <TH>Email</TH>
               <TH>
                 <ColumnFilter label="Verification" value={verificationFilter} onChange={(v) => { setVerificationFilter(v); resetPage(); }} options={VERIFICATION_FILTERS} />
@@ -203,7 +241,7 @@ export function UsersPage() {
           <TBody>
             {pageRows.length === 0 ? (
               <TR className="hover:bg-transparent">
-                <TD colSpan={5} className="p-0">
+                <TD colSpan={colCount} className="p-0">
                   <EmptyState
                     icon={<Search className="size-8" />}
                     title={`No matching ${noun}`}
@@ -223,6 +261,11 @@ export function UsersPage() {
               pageRows.map((u) => (
                 <TR key={u.id} className="cursor-pointer" onClick={() => inspect(u.id)}>
                   <TD className="font-medium">{displayName(u)}</TD>
+                  {showCategory && (
+                    <TD>
+                      <Badge variant="muted">{ROLE_LABEL[u.role]}</Badge>
+                    </TD>
+                  )}
                   <TD className="text-muted-foreground">{u.email}</TD>
                   <TD>
                     <Badge variant={u.verification === "verified" ? "success" : "muted"} className="capitalize">

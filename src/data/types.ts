@@ -6,7 +6,15 @@ export type UUID = string;
 
 // ── Users ────────────────────────────────────────────────────────────────────
 export type AccountStatus = "active" | "warned" | "suspended" | "banned";
-export type UserRole = "member" | "vendor" | "admin";
+// Account category — mirrors the member-app onboarding question "What best describes you?". The
+// three HR personas are person accounts (member-style profile); `vendor` is a company account with a
+// distinct company profile; `admin` is a platform operator (never listed in User Management).
+export type UserRole =
+  | "hr-practitioner"
+  | "hr-leader"
+  | "friends-of-hr"
+  | "vendor"
+  | "admin";
 export type VerificationStatus = "verified" | "unverified";
 
 /** Platform achievement badges shown on a member's profile and post byline. */

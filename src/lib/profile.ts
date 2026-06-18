@@ -7,17 +7,38 @@
 import type { Certification, Education, Experience, User, UserProfile } from "@/data/types";
 
 const TITLES: Record<User["role"], string[]> = {
-  member: [
-    "Senior HR Director",
+  // Individual contributors and specialists.
+  "hr-practitioner": [
     "HR Business Partner",
-    "People Operations Lead",
+    "HR Generalist",
+    "Talent Acquisition Specialist",
+    "People Operations Specialist",
+    "Recruiter",
+    "Compensation Analyst",
+    "Employee Relations Specialist",
+    "Learning & Development Specialist",
+  ],
+  // Managers and above.
+  "hr-leader": [
+    "Senior HR Director",
     "Head of Talent",
     "HR Manager",
-    "DEI Lead",
-    "Talent Acquisition Lead",
+    "VP of People",
     "Chief People Officer",
-    "Compensation Manager",
-    "Employee Relations Lead",
+    "Director of People Operations",
+    "Head of Total Rewards",
+    "DEI Lead",
+  ],
+  // Others interested in HR — adjacent roles and the HR-curious.
+  "friends-of-hr": [
+    "People & Culture Enthusiast",
+    "Founder",
+    "Operations Manager",
+    "Workplace Consultant",
+    "Org Design Researcher",
+    "HR Tech Advocate",
+    "Career Coach",
+    "Future of Work Writer",
   ],
   vendor: [
     "Founder & CEO",
